@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Background: Deep Slate-950 (Thoda sa blue-black) */
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+
+    /* Cards: Slate-900 */
+    --card: 222 47% 7%;
+    --card-foreground: 210 40% 98%;
+
+    /* Popovers: Slate-900 */
+    --popover: 222 47% 5%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary: Indigo-600 (Wahi iconic blue jo hum use kar rahe hain) */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Slate-800 */
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted: Slate-700/800 mix */
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Accent: Indigo-500/10 (Subtle highlight) */
+    --accent: 243 75% 59%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders: Slate-800 aur Inputs */
+    --border: 217 33% 15%;
+    --input: 217 33% 15%;
+    --ring: 243 75% 59%;
+
+    --radius: 1rem; /* Rounded corners for premium feel */
+
+    /* Sidebar Variables (Slate-950 base) */
+    --sidebar-background: 222 47% 3%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 243 75% 59%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 12%;
+    --sidebar-ring: 243 75% 59%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1; /* Better font rendering */
+  }
+
+  /* Custom Scrollbar for Premium Look */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+  }
+}
