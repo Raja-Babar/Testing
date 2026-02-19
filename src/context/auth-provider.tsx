@@ -41,6 +41,7 @@ type AuthContextType = {
   setRequiredIp: (ip: string) => Promise<void>;
   appLogo: string;
   updateAppLogo: (logo: string) => Promise<void>;
+  getUsers: () => Promise<User[]>; // Added function to get all users
 };
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,6 +84,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     return null;
   }, []);
+
+  // Function to get all users
+  const getUsers = useCallback(async () => {
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('*');
+    
+    if (error) {
+      toast({ variant: "destructive", title: "Error fetching users", description: error.message });
+      return [];
+    }
+
+    return profiles.map(p => ({ ...p, status: p.is_approved ? 'Approved' : 'Pending' })) as User[];
+  }, [toast]);
 
   // Initial Auth Check & Session Management
   useEffect(() => {
@@ -127,13 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isLoading && user) {
       const isAdminRoute = pathname.startsWith('/dashboard/admin');
       
-      // Agar user Admin nahi hai aur Admin route par jane ki koshish kare
       if (isAdminRoute && user.role !== 'Admin') {
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "You don't have permission to access the admin area."
-        });
+        toast({ variant: "destructive", title: "Access Denied", description: "You don't have permission to access the admin area." });
         router.replace('/dashboard');
       }
     }
@@ -196,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const authContextValue = { 
     user, login, signup, logout, isLoading, refreshUser,
-    requiredIp, setRequiredIp, appLogo, updateAppLogo,
+    requiredIp, setRequiredIp, appLogo, updateAppLogo, getUsers,
   };
 
   // --- RENDERING ---

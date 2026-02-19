@@ -42,14 +42,22 @@
 
     --radius: 1rem; /* Rounded corners for premium feel */
 
-    /* Sidebar Variables (Slate-950 base) */
-    --sidebar-background: 222 47% 3%;
-    --sidebar-foreground: 210 40% 98%;
+    /* === Sidebar Variables (Light Theme) === */
+    /* Background: Light Slate (slate-100) */
+    --sidebar-background: 210 40% 98%;
+    /* Foreground: Almost Black (slate-800) for softer text */
+    --sidebar-foreground: 222 47% 15%;
+    /* Primary Accent for active item: Indigo-600 */
     --sidebar-primary: 243 75% 59%;
+    /* Foreground for active item: White */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 12%;
+    /* Hover/Focus Background: Light grey (slate-200) */
+    --sidebar-accent: 210 40% 94%;
+    /* Hover/Focus Foreground: Black (slate-900) */
+    --sidebar-accent-foreground: 222 47% 11%;
+    /* Border: Light grey (slate-200) */
+    --sidebar-border: 210 40% 94%;
+    /* Ring color on focus: Indigo-600 */
     --sidebar-ring: 243 75% 59%;
   }
 }

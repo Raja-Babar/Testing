@@ -1,112 +1,143 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
-import { User } from '@/context/auth-provider';
+import { toast } from '@/hooks/use-toast';
 
-export type Report = {
+// Type definition for a single report from the `employee_reports` table
+export interface EmployeeReport {
   id: string;
   employee_id: string;
   employee_name: string;
   submitted_date: string;
-  submitted_time: string;
   stage: string;
   type: string;
   quantity: number;
-  note?: string; // <-- Added note type
-};
+  note: string;
+  book_id?: string;
+}
 
-export function useReports(user: User | null) {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+// Type definition for the data sent from the form
+export interface ReportSubmission {
+  employeeId: string;
+  employeeName: string;
+  bookId?: string | null;
+  stage: 'Digitized' | 'Scanned' | 'Checked' | 'Other' | 'General';
+  pagesCompleted?: number;
+  note?: string;
+  reportType: 'Book' | 'Other' | 'Remarks' | 'Pages';
+}
 
-  const getPKDate = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
-  const getPKTime = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }).format(new Date());
+/**
+ * Fetches all reports for all employees. (For Admin)
+ */
+export function useReports() {
+  return useQuery<EmployeeReport[], Error>({
+    queryKey: ['employee_reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employee_reports')
+        .select('*')
+        .order('submitted_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-  // --- Fetch My Reports ---
-  const fetchMyReports = useCallback(async () => {
-    if (!user?.id) return;
+      if (error) {
+        throw new Error(`Failed to fetch reports: ${error.message}`);
+      }
+      return data || [];
+    },
+  });
+}
 
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('employee_reports')
-      .select('*')
-      .eq('employee_id', user.id)
-      .order('submitted_date', { ascending: false })
-      .order('submitted_time', { ascending: false });
+/**
+ * Fetches reports for a specific employee. (For Employee Dashboard)
+ */
+export function useMyReports(employeeId?: string) {
+  return useQuery<EmployeeReport[], Error>({
+    queryKey: ['my_reports', employeeId],
+    queryFn: async () => {
+      if (!employeeId) return [];
+      const { data, error } = await supabase
+        .from('employee_reports')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .order('submitted_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error fetching reports', description: error.message });
-    } else {
-      setReports(data as Report[]);
-    }
-    setLoading(false);
-  }, [user?.id, toast]);
+      if (error) {
+        throw new Error(`Failed to fetch reports: ${error.message}`);
+      }
+      return data || [];
+    },
+    enabled: !!employeeId,
+  });
+}
 
-  useEffect(() => {
-    fetchMyReports();
-    if (!user?.id) return;
 
-    const channel = supabase
-      .channel(`my_reports_${user.id}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'employee_reports',
-          filter: `employee_id=eq.${user.id}` 
-        },
-        () => fetchMyReports()
-      )
-      .subscribe();
+/**
+ * Creates a new report by calling a PostgreSQL function.
+ */
+export function useCreateReport() {
+  const queryClient = useQueryClient();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchMyReports, user?.id]);
+  return useMutation({
+    mutationFn: async (submission: ReportSubmission) => {
+        const { data, error } = await supabase.rpc('submit_employee_report', {
+            p_employee_id: submission.employeeId,
+            p_employee_name: submission.employeeName,
+            p_book_id: submission.bookId,
+            p_stage: submission.stage,
+            p_pages_completed: submission.pagesCompleted || 0,
+            p_note: submission.note,
+            p_report_type: submission.reportType,
+        });
 
-  // --- Add Report with Note ---
-  const addReport = async (stage: string, type: string, quantity: number, customDate?: string, note?: string): Promise<boolean> => {
-    if (!user?.id) return false;
+        if (error) {
+            console.error('RPC Error:', error);
+            throw new Error(`Transaction failed: ${error.message}`);
+        }
 
-    const newReport = {
-        employee_id: user.id,
-        employee_name: user.full_name || user.name || user.email,
-        submitted_date: customDate || getPKDate(),
-        submitted_time: getPKTime(),
-        stage,
-        type,
-        quantity,
-        note: note || '', // <-- Save the note here
-    };
-
-    const { error } = await supabase.from('employee_reports').insert(newReport);
-
-    if (error) {
+        return data;
+    },
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'Your work report has been submitted.' });
+      // Refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: ['employee_reports'] });
+      queryClient.invalidateQueries({ queryKey: ['my_reports'] });
+      queryClient.invalidateQueries({ queryKey: ['digitization_records'] });
+      queryClient.invalidateQueries({ queryKey: ['assignedBooks'] });
+    },
+    onError: (error: Error) => {
       toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
-      return false;
-    }
+    },
+  });
+}
 
-    toast({ title: 'Success', description: 'Work logged successfully.' });
-    return true;
-  };
+/**
+ * Deletes a report.
+ */
+export function useDeleteReport() {
+  const queryClient = useQueryClient();
 
-  // --- Delete My Report ---
-  const deleteReport = async (reportId: string) => {
-    const { error } = await supabase
-      .from('employee_reports')
-      .delete()
-      .eq('id', reportId)
-      .eq('employee_id', user?.id); 
+  return useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase
+        .from('employee_reports')
+        .delete()
+        .eq('id', reportId);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
-    } else {
-      toast({ title: 'Deleted', description: 'Report removed.' });
-    }
-  };
-
-  return { reports, addReport, deleteReport, loading, refresh: fetchMyReports };
+      if (error) {
+        throw new Error(`Failed to delete report: ${error.message}`);
+      }
+      return reportId;
+    },
+    onSuccess: () => {
+      toast({ title: 'Report Deleted', description: 'The report has been removed.' });
+      queryClient.invalidateQueries({ queryKey: ['employee_reports'] });
+      queryClient.invalidateQueries({ queryKey: ['my_reports'] });
+    },
+    onError: (error: Error) => {
+      toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+    },
+  });
 }

@@ -63,11 +63,11 @@ const publicationItems = [
   { href: '/dashboard/admin/publications', icon: BookOpen, label: 'Bills-Records' },
 ];
 
-const base44Items = [
-  { href: '/base44', icon: Library, label: 'Base44 Home' },
-  { href: '/base44/books', icon: BookOpen, label: 'Books' },
-  { href: '/base44/automation', icon: Sparkles, label: 'Automation' },
-  { href: '/base44/reports', icon: FileText, label: 'Reports' },
+const baseItems = [
+  { href: '/dashboard/base', icon: Library, label: 'Base Home' },
+  { href: '/dashboard/base/books', icon: BookOpen, label: 'Books' },
+  { href: '/dashboard/base/automation', icon: Sparkles, label: 'Automation' },
+  { href: '/dashboard/base/reports', icon: FileText, label: 'Reports' },
 ];
 
 // --- Sub-component for Collapsible Sections ---
@@ -131,7 +131,7 @@ export function DashboardNav() {
     lib: pathname.includes('mhprl'),
     pub: pathname.includes('publications') || pathname.includes('mhprl/library'),
     app: pathname.includes('report-'),
-    base44: pathname.startsWith('/base44'),
+    base: pathname.startsWith('/dashboard/base'),
   });
 
   const toggleSection = (section: string) => {
@@ -196,7 +196,7 @@ export function DashboardNav() {
 
             <NavSection title="System Files" icon={File} items={appFileItems} isOpen={openSections.app} onOpenChange={() => toggleSection('app')} pathname={pathname} />
             
-            <NavSection title="Base44" icon={Library} items={base44Items} isOpen={openSections.base44} onOpenChange={() => toggleSection('base44')} pathname={pathname} />
+            <NavSection title="Base" icon={Library} items={baseItems} isOpen={openSections.base} onOpenChange={() => toggleSection('base')} pathname={pathname} />
           </div>
         )}
 

@@ -14,6 +14,27 @@ export type AttendanceRecord = {
   timeOut: string | null;
   status: 'Present' | 'Absent' | 'Leave' | 'Not Marked';
   reason?: string | null;
+  check_in_location?: string | null;
+};
+
+// Helper to get user's current location
+const getCurrentLocation = (): Promise<{ latitude: number; longitude: number; }> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      return reject(new Error('Geolocation is not supported by your browser.'));
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        reject(new Error(`Failed to get location: ${error.message}`))
+      }
+    );
+  });
 };
 
 export function useAttendance() {
@@ -49,6 +70,7 @@ export function useAttendance() {
         timeOut: rec.check_out,
         status: rec.status,
         reason: rec.reason,
+        check_in_location: rec.check_in_location
       }));
       setAttendanceRecords(formatted as AttendanceRecord[]);
     }
@@ -86,16 +108,21 @@ export function useAttendance() {
 
     try {
       if (actions.clockIn) {
+        // Get location before clocking in
+        const location = await getCurrentLocation();
+        const locationString = `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+
         // Clock In: Naya record banaye ga ya update karega agar aaj ka exist karta hai
         const { error } = await supabase.from('attendance').upsert({ 
           user_id: user.id, 
           date: karachiDate,
           check_in: karachiTime,
-          status: 'Present'
+          status: 'Present',
+          check_in_location: locationString
         }, { onConflict: 'user_id,date' });
 
         if (error) throw error;
-        toast({ title: 'Clocked In', description: `Recorded at ${karachiTime}` });
+        toast({ title: 'Clocked In', description: `Recorded at ${karachiTime} from your location.` });
 
       } else if (actions.clockOut) {
         // Clock Out: Aaj ke record mein check_out time dalega

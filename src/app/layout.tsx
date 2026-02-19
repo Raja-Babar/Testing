@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-provider';
+import QueryProvider from '@/context/query-provider';
 
 export const metadata: Metadata = {
   title: 'MHPISSJ Portal | M.H. Panhwar Institute',
@@ -36,10 +37,12 @@ export default function RootLayout({
         className="antialiased min-h-screen bg-background text-foreground selection:bg-indigo-600 selection:text-white"
         style={{ fontFamily: "'Poppins', sans-serif" }} 
       >
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );
